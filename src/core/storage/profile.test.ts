@@ -10,8 +10,13 @@ describe('resolveSettings', () => {
   it('returns DNA defaults when site has no override', () => {
     const settings = resolveSettings(DEFAULT_STATE, 'https://example.com');
     expect(settings.enabled).toBe(true);
+    // Default-on (safe wins, autonomy fights cold-start):
+    expect(settings.transforms.declutter).toBe(true);
+    expect(settings.transforms.contrast).toBe(true);
+    expect(settings.transforms.motion).toBe(true);
+    // Default-off (more invasive):
     expect(settings.transforms.typography).toBe(false);
-    expect(settings.transforms.declutter).toBe(false);
+    expect(settings.transforms.focusMode).toBe(false);
   });
 
   it('site transform override beats DNA', () => {

@@ -52,6 +52,9 @@ function fillForm(dna: UxDna) {
   setField('sync.enabled', dna.sync.enabled);
   setField('sync.serverUrl', dna.sync.serverUrl);
   setField('sync.deviceId', dna.sync.deviceId);
+  setField('autonomy.enabled', dna.autonomy.enabled);
+  setField('autonomy.confidenceThreshold', dna.autonomy.confidenceThreshold);
+  setField('autonomy.observationVisits', dna.autonomy.observationVisits);
 }
 
 function readForm(): Partial<UxDna> {
@@ -99,6 +102,11 @@ function readForm(): Partial<UxDna> {
       serverUrl: getValue('sync.serverUrl').trim(),
       deviceId: getValue('sync.deviceId').trim(),
       passphraseSet: false,
+    },
+    autonomy: {
+      enabled: getChecked('autonomy.enabled'),
+      confidenceThreshold: Math.min(1, Math.max(0.5, getNum('autonomy.confidenceThreshold') || 0.7)),
+      observationVisits: Math.min(10, Math.max(1, Math.round(getNum('autonomy.observationVisits') || 3))),
     },
   };
 }

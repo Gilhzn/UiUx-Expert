@@ -74,12 +74,39 @@ async function refresh() {
 function render() {
   if (!state) return;
   renderHeader();
+  renderAutonomy();
   renderSiteToggle();
   renderTransforms();
   renderSuggestions();
   renderCustomRules();
   renderApplyStatus();
   renderOptionsButton();
+}
+
+function renderAutonomy() {
+  if (!state) return;
+  const banner = document.getElementById('autonomy-banner');
+  if (banner) banner.hidden = !state.uxDna.autonomy.enabled;
+  const toggle = document.getElementById('autonomy-toggle') as HTMLInputElement | null;
+  if (toggle) {
+    toggle.checked = state.uxDna.autonomy.enabled;
+    toggle.onchange = async () => {
+      await sendMessage({
+        type: 'updateUxDna',
+        uxDna: {
+          autonomy: {
+            ...(state?.uxDna.autonomy ?? {
+              enabled: true,
+              confidenceThreshold: 0.7,
+              observationVisits: 3,
+            }),
+            enabled: toggle.checked,
+          },
+        },
+      });
+      void refresh();
+    };
+  }
 }
 
 function renderHeader() {

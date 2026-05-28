@@ -62,6 +62,13 @@ button[type='submit']:hover {
   color: #6a7287;
   margin: 0 0 8px;
 }
+.autonomy-fieldset {
+  background: linear-gradient(135deg, #eef3ff 0%, #f8f9fb 100%);
+  border-color: #b4c8f5;
+}
+.autonomy-fieldset legend {
+  color: #2f6df6;
+}
 .sync-actions {
   display: flex;
   gap: 8px;

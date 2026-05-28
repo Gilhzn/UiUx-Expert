@@ -62,6 +62,11 @@ export interface UxDna {
     deviceId: string;
     passphraseSet: boolean;
   };
+  autonomy: {
+    enabled: boolean;
+    confidenceThreshold: number;
+    observationVisits: number;
+  };
 }
 
 export interface SiteOverride {
@@ -111,4 +116,5 @@ export type Message =
   | { type: 'syncUpload'; passphrase: string }
   | { type: 'syncDownload'; passphrase: string }
   | { type: 'getApplyStatus'; origin: string }
-  | { type: 'reportApplyStatus'; status: unknown };
+  | { type: 'reportApplyStatus'; status: unknown }
+  | { type: 'reportPageBreakage'; origin: string };

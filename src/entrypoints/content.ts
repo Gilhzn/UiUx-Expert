@@ -110,6 +110,9 @@ export default defineContentScript({
             lastStatus.verifierIssues = report.issues.map((i) => `${i.kind}: ${i.detail}`);
             void sendMessage({ type: 'reportApplyStatus', status: lastStatus });
           }
+          // Self-heal: drop any auto-applied suggestion rules added in the last
+          // few minutes for this origin so the page doesn't keep breaking.
+          void sendMessage({ type: 'reportPageBreakage', origin });
           if (activeBlueprint) {
             const hash = activeBlueprint.blueprint.structuralHash;
             activeBlueprint = null;

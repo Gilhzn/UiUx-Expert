@@ -9,6 +9,17 @@
   <h1>הגדרות UX DNA</h1>
   <p class="subtitle">ברירות המחדל שלך — חלות אוטומטית על כל אתר חדש בביקור הראשון.</p>
   <form id="dna-form">
+    <fieldset id="autonomy-fieldset" class="autonomy-fieldset">
+      <legend>🤖 מצב אוטונומי</legend>
+      <p class="hint">המערכת לומדת את דפוסי הגלישה שלך ומתאימה אתרים אוטומטית — ללא צורך לאשר כל שינוי. אחרי 3 ביקורים באתר, אלמנטים שאתה לא מתקשר איתם מוסתרים אוטומטית. Verifier בודק שהאתר לא נשבר, ואם כן — Self-heal מבטל את הכלל שגרם לכך.</p>
+      <label><input type="checkbox" name="autonomy.enabled"> הפעל מצב אוטונומי</label>
+      <label>סף ביטחון (גבוה יותר = פחות שינויים אך בטוחים יותר):
+        <input type="number" name="autonomy.confidenceThreshold" min="0.5" max="1.0" step="0.05">
+      </label>
+      <label>מספר ביקורים מינימלי לפני התאמה אוטומטית:
+        <input type="number" name="autonomy.observationVisits" min="1" max="10" step="1">
+      </label>
+    </fieldset>
     <fieldset>
       <legend>טיפוגרפיה</legend>
       <label><input type="checkbox" name="typography.enabled"> הפעל</label>

@@ -10,19 +10,20 @@ import type { SelectorAnchor } from '../selectors/resilientSelector';
 import { anchorKey } from '../selectors/resilientSelector';
 
 const STORAGE_KEY = 'adaptiveUiState';
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 const DEFAULT_UX_DNA: UxDna = {
   enabled: true,
   typography: { enabled: false, fontScale: 1.0, lineHeight: 1.5 },
   spacing: { enabled: false, density: 'normal' },
-  contrast: { enabled: false, mode: 'auto', boost: 0 },
-  declutter: { enabled: false, hideAds: true, hideStickyBars: true, hideCookieBanners: true },
+  contrast: { enabled: true, mode: 'auto', boost: 0 },
+  declutter: { enabled: true, hideAds: true, hideStickyBars: true, hideCookieBanners: true },
   focusMode: { enabled: false, dimLevel: 0.4 },
-  motion: { enabled: false, reduce: true },
+  motion: { enabled: true, reduce: true },
   dyslexiaFont: { enabled: false },
   blueprint: { enabled: false, serverUrl: '', apiKey: '' },
   sync: { enabled: false, serverUrl: '', deviceId: '', passphraseSet: false },
+  autonomy: { enabled: true, confidenceThreshold: 0.7, observationVisits: 3 },
 };
 
 const DEFAULT_STATE: StoredState = {
@@ -114,6 +115,33 @@ export async function dismissSuggestion(
   state.sites[origin] = site;
   await saveState(state);
   return state;
+}
+
+/**
+ * Self-heal: when a page breaks, drop recent auto-applied suggestion rules
+ * and remember the dismissed IDs so the heatmap stops re-suggesting them.
+ * "Recent" defaults to the last 5 minutes.
+ */
+export async function rollbackRecentAutonomy(
+  origin: string,
+  withinMs = 5 * 60 * 1000,
+): Promise<{ state: StoredState; removed: string[] }> {
+  const state = await loadState();
+  const site = ensureSiteOverride(state, origin);
+  const cutoff = Date.now() - withinMs;
+  const removed: string[] = [];
+  site.customRules = site.customRules.filter((rule) => {
+    if (rule.source !== 'suggestion') return true;
+    if (rule.createdAt < cutoff) return true;
+    removed.push(rule.id);
+    if (!site.dismissedSuggestionIds.includes(rule.id)) {
+      site.dismissedSuggestionIds.push(rule.id);
+    }
+    return false;
+  });
+  state.sites[origin] = site;
+  await saveState(state);
+  return { state, removed };
 }
 
 function ensureSiteOverride(state: StoredState, origin: string): SiteOverride {

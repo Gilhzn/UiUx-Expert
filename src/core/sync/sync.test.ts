@@ -14,6 +14,7 @@ const SAMPLE_DNA: UxDna = {
   dyslexiaFont: { enabled: false },
   blueprint: { enabled: false, serverUrl: '', apiKey: '' },
   sync: { enabled: true, serverUrl: 'http://localhost:8000', deviceId: 'dev_test', passphraseSet: true },
+  autonomy: { enabled: true, confidenceThreshold: 0.7, observationVisits: 3 },
 };
 
 describe('crypto round-trip', () => {

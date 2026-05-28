@@ -13,6 +13,7 @@ const DNA: UxDna = {
   dyslexiaFont: { enabled: false },
   blueprint: { enabled: false, serverUrl: '', apiKey: '' },
   sync: { enabled: false, serverUrl: '', deviceId: '', passphraseSet: false },
+  autonomy: { enabled: true, confidenceThreshold: 0.7, observationVisits: 3 },
 };
 
 describe('parseNl', () => {

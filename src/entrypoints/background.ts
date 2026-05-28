@@ -6,6 +6,7 @@ import {
   addCustomRule,
   removeCustomRule,
   dismissSuggestion,
+  rollbackRecentAutonomy,
 } from '../core/storage/profile';
 import { routeKeyFromUrl } from '../core/heatmap/routeKey';
 import { loadRouteHeatmap } from '../core/heatmap/heatmapStorage';
@@ -15,6 +16,7 @@ import { reportBlueprintFeedback } from '../core/blueprint/feedback';
 import { parseNl, applyActionsToUxDna } from '../core/nl/parser';
 import { uploadUxDna, downloadUxDna } from '../core/sync/sync';
 import { randomDeviceId } from '../core/sync/crypto';
+import { registerAutonomyListener } from '../core/heatmap/autonomy';
 import type { ApplyStatus } from '../core/applyStatus/applyStatus';
 import {
   freshCachedBlueprint,
@@ -48,6 +50,8 @@ export default defineBackground(() => {
   chrome.tabs.onRemoved.addListener((tabId) => {
     APPLY_STATUS_BY_TAB.delete(tabId);
   });
+
+  registerAutonomyListener();
 });
 
 async function handle(msg: Message, sender: chrome.runtime.MessageSender) {
@@ -199,6 +203,11 @@ async function handle(msg: Message, sender: chrome.runtime.MessageSender) {
     case 'getApplyStatus': {
       const status = APPLY_STATUS_BY_ORIGIN.get(msg.origin) ?? null;
       return { type: 'applyStatus' as const, status };
+    }
+    case 'reportPageBreakage': {
+      const { removed } = await rollbackRecentAutonomy(msg.origin);
+      console.debug('[AdaptiveUI] self-heal removed', removed.length, 'auto rules');
+      return { type: 'ok' as const };
     }
     default:
       return { type: 'error' as const, error: 'unknown message' };
