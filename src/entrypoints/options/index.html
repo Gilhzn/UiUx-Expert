@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>AdaptiveUI AI — הגדרות</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <h1>הגדרות UX DNA</h1>
+  <p class="subtitle">ברירות המחדל שלך — חלות אוטומטית על כל אתר חדש בביקור הראשון.</p>
+  <form id="dna-form">
+    <fieldset>
+      <legend>טיפוגרפיה</legend>
+      <label><input type="checkbox" name="typography.enabled"> הפעל</label>
+      <label>גודל פונט (1.0 = ברירת מחדל):
+        <input type="number" name="typography.fontScale" min="0.85" max="1.5" step="0.05">
+      </label>
+      <label>גובה שורה:
+        <input type="number" name="typography.lineHeight" min="1.2" max="2.0" step="0.1">
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>מרווחים</legend>
+      <label><input type="checkbox" name="spacing.enabled"> הפעל</label>
+      <label>צפיפות:
+        <select name="spacing.density">
+          <option value="compact">צפוף</option>
+          <option value="normal">רגיל</option>
+          <option value="comfortable">נוח</option>
+        </select>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>ניגודיות / Dark Mode</legend>
+      <label><input type="checkbox" name="contrast.enabled"> הפעל</label>
+      <label>מצב:
+        <select name="contrast.mode">
+          <option value="auto">אוטומטי (לפי מערכת)</option>
+          <option value="light">בהיר</option>
+          <option value="dark">כהה</option>
+        </select>
+      </label>
+      <label>חיזוק ניגודיות (0-0.5):
+        <input type="number" name="contrast.boost" min="0" max="0.5" step="0.05">
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>הסתרת פרסומות וקוקיז</legend>
+      <label><input type="checkbox" name="declutter.enabled"> הפעל</label>
+      <label><input type="checkbox" name="declutter.hideAds"> הסתר פרסומות</label>
+      <label><input type="checkbox" name="declutter.hideCookieBanners"> הסתר באנרי קוקיז</label>
+    </fieldset>
+    <fieldset>
+      <legend>מצב ריכוז</legend>
+      <label><input type="checkbox" name="focusMode.enabled"> הפעל</label>
+      <label>עמעום (0-0.9):
+        <input type="number" name="focusMode.dimLevel" min="0" max="0.9" step="0.1">
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>אנימציות</legend>
+      <label><input type="checkbox" name="motion.enabled"> הפעל</label>
+      <label><input type="checkbox" name="motion.reduce"> הפחת תנועה</label>
+    </fieldset>
+    <button type="submit">שמור</button>
+    <span id="save-status"></span>
+  </form>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

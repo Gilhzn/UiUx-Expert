@@ -1,0 +1,25 @@
+{
+  "name": "uiux-expert",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AdaptiveUI AI — Tier 0 universal page adaptation engine",
+  "type": "module",
+  "scripts": {
+    "prepare": "wxt prepare",
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "compile": "wxt prepare && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "happy-dom": "^15.11.6",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5",
+    "wxt": "^0.19.21"
+  }
+}
