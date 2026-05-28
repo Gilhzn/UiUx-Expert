@@ -10,17 +10,19 @@ import type { SelectorAnchor } from '../selectors/resilientSelector';
 import { anchorKey } from '../selectors/resilientSelector';
 
 const STORAGE_KEY = 'adaptiveUiState';
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const DEFAULT_UX_DNA: UxDna = {
   enabled: true,
   typography: { enabled: false, fontScale: 1.0, lineHeight: 1.5 },
   spacing: { enabled: false, density: 'normal' },
   contrast: { enabled: false, mode: 'auto', boost: 0 },
-  declutter: { enabled: false, hideAds: true, hideStickyBars: false, hideCookieBanners: true },
+  declutter: { enabled: false, hideAds: true, hideStickyBars: true, hideCookieBanners: true },
   focusMode: { enabled: false, dimLevel: 0.4 },
   motion: { enabled: false, reduce: true },
-  blueprint: { enabled: false, serverUrl: '' },
+  dyslexiaFont: { enabled: false },
+  blueprint: { enabled: false, serverUrl: '', apiKey: '' },
+  sync: { enabled: false, serverUrl: '', deviceId: '', passphraseSet: false },
 };
 
 const DEFAULT_STATE: StoredState = {
@@ -144,6 +146,7 @@ export function resolveSettings(state: StoredState, origin: string): ResolvedSet
     declutter: dna.declutter.enabled,
     focusMode: dna.focusMode.enabled,
     motion: dna.motion.enabled,
+    dyslexiaFont: dna.dyslexiaFont.enabled,
   };
   if (site) {
     for (const key of Object.keys(site.transforms) as TransformId[]) {

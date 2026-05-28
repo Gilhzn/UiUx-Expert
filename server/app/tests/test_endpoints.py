@@ -8,13 +8,16 @@ from fastapi.testclient import TestClient
 
 from app.cache import cache
 from app.main import app
+from app.quarantine import store as quarantine_store
 
 
 @pytest.fixture(autouse=True)
-async def clear_cache():
+async def clear_state():
     await cache.clear()
+    await quarantine_store.clear()
     yield
     await cache.clear()
+    await quarantine_store.clear()
 
 
 client = TestClient(app)

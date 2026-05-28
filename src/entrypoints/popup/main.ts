@@ -2,6 +2,7 @@ import { sendMessage } from '../../shared/messaging';
 import type { StoredState, TransformId, UxDna, CustomRule } from '../../core/storage/types';
 import type { Suggestion } from '../../core/heatmap/types';
 import { describeAnchor } from '../../core/heatmap/suggestions';
+import type { ApplyStatus, ApplyChange } from '../../core/applyStatus/applyStatus';
 
 const TRANSFORM_LABELS: Record<TransformId, string> = {
   typography: 'טיפוגרפיה',
@@ -10,12 +11,22 @@ const TRANSFORM_LABELS: Record<TransformId, string> = {
   declutter: 'הסתרת פרסומות וקוקיז',
   focusMode: 'מצב ריכוז',
   motion: 'הפחת אנימציות',
+  dyslexiaFont: 'פונט ידידותי לדיסלקסיה',
+};
+
+const CHANGE_LABELS: Record<ApplyChange['kind'], string> = {
+  tier0: 'טרנספורמציה',
+  'custom-rule': 'כלל מותאם',
+  'sticky-bar': 'הסתרת sticky',
+  'blueprint-hide': 'Blueprint — הסתרה',
+  'blueprint-reorder': 'Blueprint — סידור מחדש',
 };
 
 let currentOrigin = '';
 let currentUrl = '';
 let state: StoredState | null = null;
 let suggestions: Suggestion[] = [];
+let applyStatus: ApplyStatus | null = null;
 
 async function getActiveTab(): Promise<{ origin: string; url: string }> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -46,8 +57,17 @@ async function refreshSuggestions() {
   suggestions = resp.type === 'suggestions' ? resp.suggestions : [];
 }
 
+async function refreshApplyStatus() {
+  if (!currentOrigin) {
+    applyStatus = null;
+    return;
+  }
+  const resp = await sendMessage({ type: 'getApplyStatus', origin: currentOrigin });
+  applyStatus = resp.type === 'applyStatus' ? resp.status : null;
+}
+
 async function refresh() {
-  await Promise.all([refreshState(), refreshSuggestions()]);
+  await Promise.all([refreshState(), refreshSuggestions(), refreshApplyStatus()]);
   render();
 }
 
@@ -58,6 +78,7 @@ function render() {
   renderTransforms();
   renderSuggestions();
   renderCustomRules();
+  renderApplyStatus();
   renderOptionsButton();
 }
 
@@ -202,6 +223,40 @@ function renderCustomRules() {
     };
     li.appendChild(btn);
     list.appendChild(li);
+  }
+}
+
+function renderApplyStatus() {
+  const section = document.getElementById('apply-status-section');
+  const list = document.getElementById('apply-status-list');
+  const issues = document.getElementById('apply-status-issues');
+  if (!section || !list || !issues) return;
+  list.innerHTML = '';
+  issues.innerHTML = '';
+  issues.hidden = true;
+
+  if (!applyStatus || applyStatus.changes.length === 0) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+
+  for (const change of applyStatus.changes) {
+    const li = document.createElement('li');
+    const kindLabel = document.createElement('span');
+    kindLabel.className = 'change-kind';
+    kindLabel.textContent = CHANGE_LABELS[change.kind];
+    li.appendChild(kindLabel);
+    const label = document.createElement('span');
+    label.className = 'change-label';
+    label.textContent = ` ${change.label}`;
+    li.appendChild(label);
+    list.appendChild(li);
+  }
+
+  if (applyStatus.verifierIssues.length > 0) {
+    issues.hidden = false;
+    issues.textContent = 'Verifier ביטל: ' + applyStatus.verifierIssues.join(' · ');
   }
 }
 

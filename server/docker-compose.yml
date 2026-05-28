@@ -8,9 +8,14 @@ services:
       OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2:3b}"
       OLLAMA_TIMEOUT: "30"
       REDIS_URL: "redis://redis:6379/0"
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://adaptiveui:adaptiveui@postgres:5432/adaptiveui}"
+      API_KEY: "${API_KEY:-}"
+      RATE_LIMIT_RPS: "${RATE_LIMIT_RPS:-0}"
+      RATE_LIMIT_BURST: "${RATE_LIMIT_BURST:-20}"
     depends_on:
       - redis
       - ollama
+      - postgres
     restart: unless-stopped
 
   redis:
@@ -28,6 +33,17 @@ services:
       - "11434:11434"
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: adaptiveui
+      POSTGRES_PASSWORD: adaptiveui
+      POSTGRES_DB: adaptiveui
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
 volumes:
   redis-data:
   ollama-data:
+  postgres-data:

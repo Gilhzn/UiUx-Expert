@@ -1,14 +1,17 @@
 import { applyTransforms, removeStyle, STYLE_ID } from '../core/engine/transformEngine';
 import { applyCustomRules, clearCustomRules } from '../core/engine/customRules';
+import { applyStickyBars, clearStickyBars } from '../core/engine/transforms/stickyBars';
+import { applyTier1Reorders, clearTier1Reorders } from '../core/engine/tier1Reorder';
 import { verify } from '../core/verify/verifier';
 import { startHeatmapEngine } from '../core/heatmap/heatmapEngine';
 import type { HeatmapEngineHandle } from '../core/heatmap/heatmapEngine';
 import { routeKey as makeRouteKey } from '../core/heatmap/routeKey';
 import { skeletonize } from '../core/skeletonizer/skeletonizer';
-import { blueprintToCustomRules } from '../core/blueprint/applyBlueprint';
+import { blueprintHideRules, blueprintReorderRules } from '../core/blueprint/applyBlueprint';
 import { sendMessage } from '../shared/messaging';
 import type { CachedBlueprint } from '../core/blueprint/types';
-import type { CustomRule, ResolvedSettings } from '../core/storage/types';
+import type { CustomRule, ResolvedSettings, TransformId } from '../core/storage/types';
+import { emptyStatus, type ApplyStatus, type ApplyChange } from '../core/applyStatus/applyStatus';
 
 const SETTINGS_STORAGE_KEY = 'adaptiveUiState';
 
@@ -32,16 +35,67 @@ export default defineContentScript({
     const rulesFor = (settings: ResolvedSettings): CustomRule[] => {
       const base = settings.customRules;
       if (!activeBlueprint || activeBlueprint.quarantined) return base;
-      return [...base, ...blueprintToCustomRules(activeBlueprint.blueprint, origin)];
+      return [...base, ...blueprintHideRules(activeBlueprint.blueprint, origin)];
+    };
+
+    const reordersFor = () => {
+      if (!activeBlueprint || activeBlueprint.quarantined) return [];
+      return blueprintReorderRules(activeBlueprint.blueprint);
     };
 
     const apply = () => {
       if (!currentSettings) return;
-      const result = applyTransforms(currentSettings);
-      if (!result.ok) return;
-      applyCustomRules(rulesFor(currentSettings));
+      const status = emptyStatus(origin);
+      status.enabled = currentSettings.enabled;
+      const css = applyTransforms(currentSettings);
+      if (!css.ok) return;
+      status.activeTransforms = css.applied as TransformId[];
+      for (const id of status.activeTransforms) {
+        status.changes.push({ kind: 'tier0', label: id });
+      }
+
+      const customRules = rulesFor(currentSettings);
+      const customApply = applyCustomRules(customRules);
+      status.customRulesApplied = customApply.applied;
+      for (const rule of currentSettings.customRules) {
+        status.changes.push({ kind: 'custom-rule', id: rule.id, label: rule.anchor.tag });
+      }
+
+      let stickyHidden = 0;
+      if (
+        currentSettings.uxDna.declutter.enabled &&
+        currentSettings.uxDna.declutter.hideStickyBars
+      ) {
+        stickyHidden = applyStickyBars().hidden;
+      } else {
+        clearStickyBars();
+      }
+      status.stickyBarsHidden = stickyHidden;
+
+      const reorders = reordersFor();
+      const tier1 = applyTier1Reorders(reorders);
+      status.blueprintReorder = tier1.applied;
+
+      if (activeBlueprint && !activeBlueprint.quarantined) {
+        for (const t of activeBlueprint.blueprint.transforms) {
+          if (t.action === 'hide') {
+            status.blueprintHide += 1;
+            status.changes.push({ kind: 'blueprint-hide', id: t.id, label: t.anchor.tag });
+          } else if (t.action === 'reorder') {
+            status.changes.push({ kind: 'blueprint-reorder', id: t.id, label: t.anchor.tag });
+          }
+        }
+      }
+      if (stickyHidden > 0) {
+        status.changes.push({ kind: 'sticky-bar', label: `${stickyHidden} bar(s)` });
+      }
+
+      lastStatus = status;
+      void sendMessage({ type: 'reportApplyStatus', status });
       scheduleVerify();
     };
+
+    let lastStatus: ApplyStatus | null = null;
 
     const scheduleVerify = () => {
       const run = () => {
@@ -50,6 +104,12 @@ export default defineContentScript({
           console.warn('[AdaptiveUI] verifier rollback:', report.issues);
           removeStyle();
           clearCustomRules();
+          clearStickyBars();
+          clearTier1Reorders();
+          if (lastStatus) {
+            lastStatus.verifierIssues = report.issues.map((i) => `${i.kind}: ${i.detail}`);
+            void sendMessage({ type: 'reportApplyStatus', status: lastStatus });
+          }
           if (activeBlueprint) {
             const hash = activeBlueprint.blueprint.structuralHash;
             activeBlueprint = null;

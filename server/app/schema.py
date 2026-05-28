@@ -19,7 +19,9 @@ class Anchor(BaseModel):
 class BlueprintTransform(BaseModel):
     id: str
     anchor: Anchor
-    action: Literal["hide"]
+    action: Literal["hide", "reorder"]
+    targetOrder: Optional[int] = None
+    parentAnchor: Optional[Anchor] = None
     reason: Optional[str] = None
 
 

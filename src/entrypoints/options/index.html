@@ -63,12 +63,50 @@
       <label><input type="checkbox" name="motion.reduce"> הפחת תנועה</label>
     </fieldset>
     <fieldset>
+      <legend>פונט ידידותי לדיסלקסיה</legend>
+      <p class="hint">מחלץ את הפונט המקומי "OpenDyslexic" אם הוא מותקן אצלך, אחרת נופל ל-Comic Neue / Verdana — אין הורדה מרחוק.</p>
+      <label><input type="checkbox" name="dyslexiaFont.enabled"> הפעל</label>
+    </fieldset>
+    <fieldset>
       <legend>Blueprint (שרת AI — מתקדם)</legend>
       <p class="hint">בעת הפעלה, מבנה האתר (לאחר Skeletonizer — ללא טקסט/PII) נשלח לשרת לקבלת המלצות נוספות. דורש שרת מקומי או פרטי שלך.</p>
       <label><input type="checkbox" name="blueprint.enabled"> הפעל</label>
       <label>כתובת שרת:
         <input type="url" name="blueprint.serverUrl" placeholder="http://localhost:8000" style="min-width: 280px;">
       </label>
+      <label>מפתח API (אופציונלי, אם השרת דורש):
+        <input type="password" name="blueprint.apiKey" placeholder="" style="min-width: 280px;">
+      </label>
+    </fieldset>
+    <fieldset id="sync-fieldset">
+      <legend>סנכרון UX DNA (E2E מוצפן)</legend>
+      <p class="hint">העדפותיך מוצפנות (AES-GCM, נגזרת PBKDF2 מסיסמה) ונשלחות לשרת לסנכרון בין מכשירים. השרת אינו רואה את התוכן.</p>
+      <label><input type="checkbox" name="sync.enabled"> הפעל סנכרון</label>
+      <label>כתובת שרת סנכרון:
+        <input type="url" name="sync.serverUrl" placeholder="http://localhost:8000" style="min-width: 280px;">
+      </label>
+      <label>מזהה מכשיר:
+        <input type="text" name="sync.deviceId" readonly style="min-width: 280px;">
+      </label>
+      <label>סיסמת הצפנה (זהה בכל מכשיריך):
+        <input type="password" id="sync-passphrase" placeholder="לא נשלחת לשרת" style="min-width: 280px;">
+      </label>
+      <div class="sync-actions">
+        <button type="button" id="sync-upload">העלה לענן</button>
+        <button type="button" id="sync-download">משוך מהענן</button>
+        <span id="sync-status"></span>
+      </div>
+    </fieldset>
+    <fieldset id="nl-fieldset">
+      <legend>פקודות בשפה טבעית</legend>
+      <p class="hint">פקודה תוחל על האתר הפעיל: "הסתר פרסומות", "מצב כהה", "פונט גדול יותר", "מצב ריכוז".</p>
+      <label>פקודה:
+        <input type="text" id="nl-input" placeholder="לדוגמה: הסתר פרסומות, הפעל מצב ריכוז" style="min-width: 280px;">
+      </label>
+      <div class="sync-actions">
+        <button type="button" id="nl-run">הפעל</button>
+        <span id="nl-status"></span>
+      </div>
     </fieldset>
     <button type="submit">שמור</button>
     <span id="save-status"></span>

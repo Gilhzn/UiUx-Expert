@@ -62,3 +62,26 @@ button[type='submit']:hover {
   color: #6a7287;
   margin: 0 0 8px;
 }
+.sync-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+.sync-actions button {
+  background: #2f6df6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sync-actions button:hover {
+  background: #1d59e3;
+}
+#sync-status,
+#nl-status {
+  font-size: 12px;
+  color: #6a7287;
+}

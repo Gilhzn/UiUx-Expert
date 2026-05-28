@@ -6,6 +6,7 @@ import { contrastRules } from './contrast';
 import { declutterRules } from './declutter';
 import { focusModeRules } from './focusMode';
 import { motionRules } from './motion';
+import { dyslexiaFontRules } from './dyslexiaFont';
 
 export interface TransformOutput {
   prelude?: string;
@@ -19,6 +20,7 @@ const REGISTRY: Record<TransformId, (dna: UxDna) => TransformOutput> = {
   declutter: (dna) => ({ rules: declutterRules(dna) }),
   focusMode: (dna) => ({ rules: focusModeRules(dna) }),
   motion: (dna) => ({ rules: motionRules(dna) }),
+  dyslexiaFont: (dna) => ({ rules: dyslexiaFontRules(dna) }),
 };
 
 export function runTransforms(active: TransformId[], dna: UxDna): TransformOutput {

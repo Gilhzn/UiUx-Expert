@@ -11,6 +11,11 @@ import { routeKeyFromUrl } from '../core/heatmap/routeKey';
 import { loadRouteHeatmap } from '../core/heatmap/heatmapStorage';
 import { generateSuggestions } from '../core/heatmap/suggestions';
 import { fetchBlueprint } from '../core/blueprint/client';
+import { reportBlueprintFeedback } from '../core/blueprint/feedback';
+import { parseNl, applyActionsToUxDna } from '../core/nl/parser';
+import { uploadUxDna, downloadUxDna } from '../core/sync/sync';
+import { randomDeviceId } from '../core/sync/crypto';
+import type { ApplyStatus } from '../core/applyStatus/applyStatus';
 import {
   freshCachedBlueprint,
   loadCachedBlueprint,
@@ -21,20 +26,31 @@ import type { Message } from '../core/storage/types';
 import type { Suggestion } from '../core/heatmap/types';
 import type { CachedBlueprint } from '../core/blueprint/types';
 
+const APPLY_STATUS_BY_TAB = new Map<number, ApplyStatus>();
+const APPLY_STATUS_BY_ORIGIN = new Map<string, ApplyStatus>();
+
 export default defineBackground(() => {
-  chrome.runtime.onMessage.addListener((msg: Message, _sender, sendResponse) => {
-    handle(msg)
+  chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
+    handle(msg, sender)
       .then(sendResponse)
       .catch((e) => sendResponse({ type: 'error', error: String(e) }));
     return true;
   });
 
-  chrome.runtime.onInstalled.addListener(() => {
-    void loadState();
+  chrome.runtime.onInstalled.addListener(async () => {
+    const state = await loadState();
+    if (!state.uxDna.sync.deviceId) {
+      state.uxDna.sync.deviceId = randomDeviceId();
+      await updateUxDna({ sync: { ...state.uxDna.sync, deviceId: state.uxDna.sync.deviceId } });
+    }
+  });
+
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    APPLY_STATUS_BY_TAB.delete(tabId);
   });
 });
 
-async function handle(msg: Message) {
+async function handle(msg: Message, sender: chrome.runtime.MessageSender) {
   switch (msg.type) {
     case 'getResolvedSettings': {
       const state = await loadState();
@@ -81,7 +97,7 @@ async function handle(msg: Message) {
     }
     case 'fetchBlueprint': {
       const state = await loadState();
-      const { enabled, serverUrl } = state.uxDna.blueprint;
+      const { enabled, serverUrl, apiKey } = state.uxDna.blueprint;
       if (!enabled || !serverUrl) {
         return { type: 'blueprint' as const, cached: null, reason: 'disabled' };
       }
@@ -94,6 +110,7 @@ async function handle(msg: Message) {
       }
       const result = await fetchBlueprint({
         serverUrl,
+        apiKey: apiKey || undefined,
         structuralHash: msg.structuralHash,
         skeleton: msg.skeleton as SkeletonNode,
       });
@@ -105,7 +122,83 @@ async function handle(msg: Message) {
     }
     case 'reportBlueprintFailure': {
       await recordBlueprintFailure(msg.structuralHash);
+      const state = await loadState();
+      const { serverUrl, apiKey } = state.uxDna.blueprint;
+      if (serverUrl) {
+        void reportBlueprintFeedback({
+          serverUrl,
+          apiKey: apiKey || undefined,
+          structuralHash: msg.structuralHash,
+          verifierFailed: true,
+        });
+      }
       return { type: 'ok' as const };
+    }
+    case 'runNlCommand': {
+      const parsed = parseNl(msg.text);
+      if (parsed.unrecognized) {
+        return { type: 'nl' as const, ok: false, matched: [], unrecognized: true };
+      }
+      const state = await loadState();
+      const patch = applyActionsToUxDna(state.uxDna, parsed.actions);
+      const next = await updateUxDna(patch);
+      return {
+        type: 'nl' as const,
+        ok: true,
+        matched: parsed.matched,
+        unrecognized: false,
+        state: next,
+      };
+    }
+    case 'syncUpload': {
+      const state = await loadState();
+      const { serverUrl, deviceId } = state.uxDna.sync;
+      if (!serverUrl) return { type: 'sync' as const, ok: false, error: 'no server URL set' };
+      if (!deviceId) return { type: 'sync' as const, ok: false, error: 'no deviceId' };
+      const result = await uploadUxDna({
+        serverUrl,
+        apiKey: state.uxDna.blueprint.apiKey || undefined,
+        passphrase: msg.passphrase,
+        deviceId,
+        uxDna: state.uxDna,
+      });
+      if (result.ok) {
+        await updateUxDna({ sync: { ...state.uxDna.sync, passphraseSet: true } });
+      }
+      return { type: 'sync' as const, ...result };
+    }
+    case 'syncDownload': {
+      const state = await loadState();
+      const { serverUrl, deviceId } = state.uxDna.sync;
+      if (!serverUrl) return { type: 'sync' as const, ok: false, error: 'no server URL set' };
+      if (!deviceId) return { type: 'sync' as const, ok: false, error: 'no deviceId' };
+      const result = await downloadUxDna({
+        serverUrl,
+        apiKey: state.uxDna.blueprint.apiKey || undefined,
+        passphrase: msg.passphrase,
+        deviceId,
+      });
+      if (result.ok && result.uxDna) {
+        await updateUxDna(result.uxDna);
+      }
+      return { type: 'sync' as const, ok: result.ok, error: result.error };
+    }
+    case 'reportApplyStatus': {
+      const status = msg.status as ApplyStatus | undefined;
+      if (!status) return { type: 'ok' as const };
+      const tabId = sender.tab?.id;
+      if (typeof tabId === 'number') {
+        const enriched: ApplyStatus = { ...status, tabId };
+        APPLY_STATUS_BY_TAB.set(tabId, enriched);
+        APPLY_STATUS_BY_ORIGIN.set(status.origin, enriched);
+      } else {
+        APPLY_STATUS_BY_ORIGIN.set(status.origin, status);
+      }
+      return { type: 'ok' as const };
+    }
+    case 'getApplyStatus': {
+      const status = APPLY_STATUS_BY_ORIGIN.get(msg.origin) ?? null;
+      return { type: 'applyStatus' as const, status };
     }
     default:
       return { type: 'error' as const, error: 'unknown message' };

@@ -11,7 +11,7 @@ function setField(name: string, value: unknown) {
   if (el instanceof HTMLInputElement && el.type === 'checkbox') {
     el.checked = !!value;
   } else {
-    el.value = String(value);
+    el.value = String(value ?? '');
   }
 }
 
@@ -45,8 +45,13 @@ function fillForm(dna: UxDna) {
   setField('focusMode.dimLevel', dna.focusMode.dimLevel);
   setField('motion.enabled', dna.motion.enabled);
   setField('motion.reduce', dna.motion.reduce);
+  setField('dyslexiaFont.enabled', dna.dyslexiaFont.enabled);
   setField('blueprint.enabled', dna.blueprint.enabled);
   setField('blueprint.serverUrl', dna.blueprint.serverUrl);
+  setField('blueprint.apiKey', dna.blueprint.apiKey);
+  setField('sync.enabled', dna.sync.enabled);
+  setField('sync.serverUrl', dna.sync.serverUrl);
+  setField('sync.deviceId', dna.sync.deviceId);
 }
 
 function readForm(): Partial<UxDna> {
@@ -70,7 +75,7 @@ function readForm(): Partial<UxDna> {
     declutter: {
       enabled: getChecked('declutter.enabled'),
       hideAds: getChecked('declutter.hideAds'),
-      hideStickyBars: false,
+      hideStickyBars: true,
       hideCookieBanners: getChecked('declutter.hideCookieBanners'),
     },
     focusMode: {
@@ -81,11 +86,90 @@ function readForm(): Partial<UxDna> {
       enabled: getChecked('motion.enabled'),
       reduce: getChecked('motion.reduce'),
     },
+    dyslexiaFont: {
+      enabled: getChecked('dyslexiaFont.enabled'),
+    },
     blueprint: {
       enabled: getChecked('blueprint.enabled'),
       serverUrl: getValue('blueprint.serverUrl').trim(),
+      apiKey: getValue('blueprint.apiKey').trim(),
+    },
+    sync: {
+      enabled: getChecked('sync.enabled'),
+      serverUrl: getValue('sync.serverUrl').trim(),
+      deviceId: getValue('sync.deviceId').trim(),
+      passphraseSet: false,
     },
   };
+}
+
+function setStatus(id: string, text: string, color = '#2a8a3e'): void {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = color;
+}
+
+function setupSyncHandlers() {
+  const passphrase = document.getElementById('sync-passphrase') as HTMLInputElement | null;
+  const upload = document.getElementById('sync-upload') as HTMLButtonElement | null;
+  const download = document.getElementById('sync-download') as HTMLButtonElement | null;
+
+  upload?.addEventListener('click', async () => {
+    if (!passphrase?.value) {
+      setStatus('sync-status', 'יש להזין סיסמה', '#aa1a1a');
+      return;
+    }
+    setStatus('sync-status', 'מעלה…', '#6a7287');
+    const resp = await sendMessage({ type: 'syncUpload', passphrase: passphrase.value });
+    if (resp.type === 'sync' && resp.ok) {
+      setStatus('sync-status', '✓ הועלה (מוצפן)');
+    } else {
+      const err = resp.type === 'sync' ? resp.error ?? 'unknown' : 'unknown';
+      setStatus('sync-status', `✗ ${err}`, '#aa1a1a');
+    }
+  });
+
+  download?.addEventListener('click', async () => {
+    if (!passphrase?.value) {
+      setStatus('sync-status', 'יש להזין סיסמה', '#aa1a1a');
+      return;
+    }
+    setStatus('sync-status', 'מוריד ומפענח…', '#6a7287');
+    const resp = await sendMessage({ type: 'syncDownload', passphrase: passphrase.value });
+    if (resp.type === 'sync' && resp.ok) {
+      setStatus('sync-status', '✓ סונכרן מהענן');
+      const stateResp = await sendMessage({ type: 'getState' });
+      if (stateResp.type === 'state') fillForm(stateResp.state.uxDna);
+    } else {
+      const err = resp.type === 'sync' ? resp.error ?? 'unknown' : 'unknown';
+      setStatus('sync-status', `✗ ${err}`, '#aa1a1a');
+    }
+  });
+}
+
+function setupNlHandler() {
+  const input = document.getElementById('nl-input') as HTMLInputElement | null;
+  const button = document.getElementById('nl-run') as HTMLButtonElement | null;
+  button?.addEventListener('click', async () => {
+    const text = input?.value.trim() ?? '';
+    if (!text) {
+      setStatus('nl-status', 'הזן פקודה', '#aa1a1a');
+      return;
+    }
+    setStatus('nl-status', 'מפעיל…', '#6a7287');
+    const resp = await sendMessage({ type: 'runNlCommand', text });
+    if (resp.type === 'nl') {
+      if (resp.unrecognized) {
+        setStatus('nl-status', '✗ לא זוהתה פקודה', '#aa1a1a');
+      } else {
+        setStatus('nl-status', `✓ הוחל: ${resp.matched.join(', ')}`);
+        if (resp.state) fillForm(resp.state.uxDna);
+      }
+    } else {
+      setStatus('nl-status', '✗ שגיאה', '#aa1a1a');
+    }
+  });
 }
 
 (async () => {
@@ -94,17 +178,16 @@ function readForm(): Partial<UxDna> {
   fillForm(resp.state.uxDna);
 
   const form = document.getElementById('dna-form') as HTMLFormElement | null;
-  if (!form) return;
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const patch = readForm();
-    await sendMessage({ type: 'updateUxDna', uxDna: patch });
-    const status = document.getElementById('save-status');
-    if (status) {
-      status.textContent = '✓ נשמר';
-      setTimeout(() => {
-        if (status) status.textContent = '';
-      }, 1500);
-    }
-  });
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const patch = readForm();
+      await sendMessage({ type: 'updateUxDna', uxDna: patch });
+      setStatus('save-status', '✓ נשמר');
+      setTimeout(() => setStatus('save-status', ''), 1500);
+    });
+  }
+
+  setupSyncHandlers();
+  setupNlHandler();
 })();

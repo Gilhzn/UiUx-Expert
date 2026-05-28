@@ -6,7 +6,8 @@ export type TransformId =
   | 'contrast'
   | 'declutter'
   | 'focusMode'
-  | 'motion';
+  | 'motion'
+  | 'dyslexiaFont';
 
 export interface CustomRule {
   id: string;
@@ -47,9 +48,19 @@ export interface UxDna {
     enabled: boolean;
     reduce: boolean;
   };
+  dyslexiaFont: {
+    enabled: boolean;
+  };
   blueprint: {
     enabled: boolean;
     serverUrl: string;
+    apiKey: string;
+  };
+  sync: {
+    enabled: boolean;
+    serverUrl: string;
+    deviceId: string;
+    passphraseSet: boolean;
   };
 }
 
@@ -95,4 +106,9 @@ export type Message =
   | { type: 'dismissSuggestion'; origin: string; suggestionId: string }
   | { type: 'removeCustomRule'; origin: string; ruleId: string }
   | { type: 'fetchBlueprint'; structuralHash: string; skeleton: unknown }
-  | { type: 'reportBlueprintFailure'; structuralHash: string };
+  | { type: 'reportBlueprintFailure'; structuralHash: string }
+  | { type: 'runNlCommand'; text: string }
+  | { type: 'syncUpload'; passphrase: string }
+  | { type: 'syncDownload'; passphrase: string }
+  | { type: 'getApplyStatus'; origin: string }
+  | { type: 'reportApplyStatus'; status: unknown };
