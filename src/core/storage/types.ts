@@ -1,3 +1,5 @@
+import type { SelectorAnchor } from '../selectors/resilientSelector';
+
 export type TransformId =
   | 'typography'
   | 'spacing'
@@ -5,6 +7,15 @@ export type TransformId =
   | 'declutter'
   | 'focusMode'
   | 'motion';
+
+export interface CustomRule {
+  id: string;
+  origin: string;
+  anchor: SelectorAnchor;
+  action: 'hide';
+  source: 'suggestion' | 'manual';
+  createdAt: number;
+}
 
 export interface UxDna {
   enabled: boolean;
@@ -42,6 +53,8 @@ export interface SiteOverride {
   origin: string;
   enabled: boolean | null;
   transforms: Partial<Record<TransformId, boolean>>;
+  customRules: CustomRule[];
+  dismissedSuggestionIds: string[];
 }
 
 export interface StoredState {
@@ -54,6 +67,7 @@ export interface ResolvedSettings {
   enabled: boolean;
   transforms: Record<TransformId, boolean>;
   uxDna: UxDna;
+  customRules: CustomRule[];
 }
 
 export interface VerifierIssue {
@@ -71,4 +85,8 @@ export type Message =
   | { type: 'getResolvedSettings'; origin: string }
   | { type: 'updateUxDna'; uxDna: Partial<UxDna> }
   | { type: 'updateSiteOverride'; origin: string; override: Partial<SiteOverride> }
-  | { type: 'getState' };
+  | { type: 'getState' }
+  | { type: 'getSuggestions'; url: string }
+  | { type: 'applySuggestion'; origin: string; suggestionId: string; anchor: SelectorAnchor }
+  | { type: 'dismissSuggestion'; origin: string; suggestionId: string }
+  | { type: 'removeCustomRule'; origin: string; ruleId: string };

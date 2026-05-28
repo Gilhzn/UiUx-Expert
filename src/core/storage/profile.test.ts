@@ -21,6 +21,8 @@ describe('resolveSettings', () => {
       origin: 'https://example.com',
       enabled: null,
       transforms: { typography: false },
+      customRules: [],
+      dismissedSuggestionIds: [],
     };
     const settings = resolveSettings(state, 'https://example.com');
     expect(settings.transforms.typography).toBe(false);
@@ -32,9 +34,41 @@ describe('resolveSettings', () => {
       origin: 'https://example.com',
       enabled: false,
       transforms: {},
+      customRules: [],
+      dismissedSuggestionIds: [],
     };
     const settings = resolveSettings(state, 'https://example.com');
     expect(settings.enabled).toBe(false);
+  });
+
+  it('resolved settings expose customRules for the origin', () => {
+    const state = clone(DEFAULT_STATE);
+    state.sites['https://example.com'] = {
+      origin: 'https://example.com',
+      enabled: null,
+      transforms: {},
+      customRules: [
+        {
+          id: 'r1',
+          origin: 'https://example.com',
+          anchor: {
+            tag: 'div',
+            role: null,
+            ariaLabel: null,
+            accessibleName: null,
+            classFingerprint: '',
+            structuralPath: 'body>div:nth-child(1)',
+          },
+          action: 'hide',
+          source: 'suggestion',
+          createdAt: 1,
+        },
+      ],
+      dismissedSuggestionIds: [],
+    };
+    const settings = resolveSettings(state, 'https://example.com');
+    expect(settings.customRules).toHaveLength(1);
+    expect(settings.customRules[0]?.id).toBe('r1');
   });
 
   it('UX DNA applies to a brand new site (cold start solved)', () => {

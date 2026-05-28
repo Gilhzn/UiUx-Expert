@@ -68,3 +68,53 @@ button {
 button:hover {
   background: #1d59e3;
 }
+button.secondary {
+  background: white;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+button.secondary:hover {
+  background: #eef1f6;
+}
+button.small {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.suggestion {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.suggestion-desc {
+  font-size: 13px;
+  font-weight: 600;
+}
+.suggestion-reason {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 2px 0 6px;
+}
+.suggestion-actions {
+  display: flex;
+  gap: 6px;
+}
+.suggestion-actions button {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+#custom-rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+#custom-rules-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}

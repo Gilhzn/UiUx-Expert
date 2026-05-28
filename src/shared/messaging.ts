@@ -1,8 +1,10 @@
 import type { Message, ResolvedSettings, StoredState } from '../core/storage/types';
+import type { Suggestion } from '../core/heatmap/types';
 
 export type MessageResponse =
   | { type: 'state'; state: StoredState }
   | { type: 'settings'; settings: ResolvedSettings }
+  | { type: 'suggestions'; suggestions: Suggestion[] }
   | { type: 'ok' }
   | { type: 'error'; error: string };
 

@@ -18,6 +18,38 @@ export function buildAnchor(el: Element): SelectorAnchor {
   };
 }
 
+export function anchorKey(anchor: SelectorAnchor): string {
+  return [
+    anchor.tag,
+    anchor.role ?? '',
+    anchor.ariaLabel ?? '',
+    anchor.accessibleName ?? '',
+    anchor.classFingerprint,
+    anchor.structuralPath,
+  ].join('|');
+}
+
+export function findBestMatch(
+  anchor: SelectorAnchor,
+  scope: ParentNode = document,
+  minScore = 0.5,
+): { el: Element; score: number } | null {
+  let candidates: Element[];
+  try {
+    candidates = Array.from(scope.querySelectorAll(anchor.tag));
+  } catch {
+    return null;
+  }
+  let best: { el: Element; score: number } | null = null;
+  for (const el of candidates) {
+    const score = scoreMatch(el, anchor);
+    if (score >= minScore && (!best || score > best.score)) {
+      best = { el, score };
+    }
+  }
+  return best;
+}
+
 export function scoreMatch(el: Element, anchor: SelectorAnchor): number {
   let max = 0;
   let got = 0;
