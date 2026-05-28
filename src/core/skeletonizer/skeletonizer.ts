@@ -1,5 +1,6 @@
 export interface SkeletonNode {
   t: string;
+  i?: number;
   r?: string;
   a?: '1';
   c?: string;
@@ -32,13 +33,17 @@ export function skeletonize(root: Element): SkeletonResult {
     }
     let textLen = 0;
     const children: SkeletonNode[] = [];
+    let elementChildIndex = 0;
     for (const child of Array.from(el.childNodes)) {
       if (child.nodeType === 3 /* TEXT_NODE */) {
         textLen += (child.textContent ?? '').trim().length;
       } else if (child.nodeType === 1 /* ELEMENT_NODE */) {
+        elementChildIndex += 1;
         const childEl = child as Element;
         if (SKIP_TAGS.has(childEl.tagName)) continue;
-        children.push(visit(childEl));
+        const childNode = visit(childEl);
+        childNode.i = elementChildIndex;
+        children.push(childNode);
       }
     }
     if (textLen > 0) node.s = bucket(textLen);

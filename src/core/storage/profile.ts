@@ -10,7 +10,7 @@ import type { SelectorAnchor } from '../selectors/resilientSelector';
 import { anchorKey } from '../selectors/resilientSelector';
 
 const STORAGE_KEY = 'adaptiveUiState';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const DEFAULT_UX_DNA: UxDna = {
   enabled: true,
@@ -20,6 +20,7 @@ const DEFAULT_UX_DNA: UxDna = {
   declutter: { enabled: false, hideAds: true, hideStickyBars: false, hideCookieBanners: true },
   focusMode: { enabled: false, dimLevel: 0.4 },
   motion: { enabled: false, reduce: true },
+  blueprint: { enabled: false, serverUrl: '' },
 };
 
 const DEFAULT_STATE: StoredState = {

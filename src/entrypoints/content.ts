@@ -4,8 +4,11 @@ import { verify } from '../core/verify/verifier';
 import { startHeatmapEngine } from '../core/heatmap/heatmapEngine';
 import type { HeatmapEngineHandle } from '../core/heatmap/heatmapEngine';
 import { routeKey as makeRouteKey } from '../core/heatmap/routeKey';
+import { skeletonize } from '../core/skeletonizer/skeletonizer';
+import { blueprintToCustomRules } from '../core/blueprint/applyBlueprint';
 import { sendMessage } from '../shared/messaging';
-import type { ResolvedSettings } from '../core/storage/types';
+import type { CachedBlueprint } from '../core/blueprint/types';
+import type { CustomRule, ResolvedSettings } from '../core/storage/types';
 
 const SETTINGS_STORAGE_KEY = 'adaptiveUiState';
 
@@ -15,6 +18,7 @@ export default defineContentScript({
   async main() {
     const origin = location.origin;
     let currentSettings: ResolvedSettings | null = null;
+    let activeBlueprint: CachedBlueprint | null = null;
     let heatmap: HeatmapEngineHandle | null = null;
 
     try {
@@ -25,11 +29,17 @@ export default defineContentScript({
     }
     if (!currentSettings) return;
 
+    const rulesFor = (settings: ResolvedSettings): CustomRule[] => {
+      const base = settings.customRules;
+      if (!activeBlueprint || activeBlueprint.quarantined) return base;
+      return [...base, ...blueprintToCustomRules(activeBlueprint.blueprint, origin)];
+    };
+
     const apply = () => {
       if (!currentSettings) return;
       const result = applyTransforms(currentSettings);
       if (!result.ok) return;
-      applyCustomRules(currentSettings.customRules);
+      applyCustomRules(rulesFor(currentSettings));
       scheduleVerify();
     };
 
@@ -40,6 +50,11 @@ export default defineContentScript({
           console.warn('[AdaptiveUI] verifier rollback:', report.issues);
           removeStyle();
           clearCustomRules();
+          if (activeBlueprint) {
+            const hash = activeBlueprint.blueprint.structuralHash;
+            activeBlueprint = null;
+            void sendMessage({ type: 'reportBlueprintFailure', structuralHash: hash });
+          }
         }
       };
       if (typeof requestIdleCallback !== 'undefined') {
@@ -53,12 +68,14 @@ export default defineContentScript({
 
     const startObserver = () => {
       const observer = new MutationObserver(() => {
+        if (!currentSettings) return;
         const styleEl = document.getElementById(STYLE_ID);
         const head = document.head ?? document.documentElement;
         if (!styleEl || styleEl.parentElement !== head) {
           apply();
-        } else if (currentSettings && currentSettings.customRules.length > 0) {
-          applyCustomRules(currentSettings.customRules);
+        } else {
+          const rules = rulesFor(currentSettings);
+          if (rules.length > 0) applyCustomRules(rules);
         }
       });
       observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -83,6 +100,7 @@ export default defineContentScript({
       if (resp.type === 'settings') {
         currentSettings = resp.settings;
         apply();
+        void tryFetchBlueprint();
       }
     });
 
@@ -96,10 +114,37 @@ export default defineContentScript({
       }
     };
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => { void startHeatmap(); });
-    } else {
+    const tryFetchBlueprint = async () => {
+      if (!currentSettings?.enabled) return;
+      if (!currentSettings.uxDna.blueprint.enabled) return;
+      if (!currentSettings.uxDna.blueprint.serverUrl) return;
+      const root = document.body;
+      if (!root) return;
+      const skel = skeletonize(root);
+      try {
+        const resp = await sendMessage({
+          type: 'fetchBlueprint',
+          structuralHash: skel.hash,
+          skeleton: skel.root,
+        });
+        if (resp.type === 'blueprint' && resp.cached && !resp.cached.quarantined) {
+          activeBlueprint = resp.cached;
+          apply();
+        }
+      } catch (e) {
+        console.debug('[AdaptiveUI] blueprint fetch failed:', e);
+      }
+    };
+
+    const onReady = () => {
       void startHeatmap();
+      void tryFetchBlueprint();
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', onReady);
+    } else {
+      onReady();
     }
 
     let lastPath = location.pathname;
@@ -108,7 +153,9 @@ export default defineContentScript({
         lastPath = location.pathname;
         heatmap?.stop();
         heatmap = null;
+        activeBlueprint = null;
         void startHeatmap();
+        void tryFetchBlueprint();
       }
     });
     observerForRoute.observe(document.documentElement, { childList: true, subtree: true });

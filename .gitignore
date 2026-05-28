@@ -6,3 +6,10 @@ stats.html
 *.log
 .DS_Store
 *.local
+
+# server
+server/.venv/
+server/__pycache__/
+server/**/__pycache__/
+server/.pytest_cache/
+server/*.egg-info/

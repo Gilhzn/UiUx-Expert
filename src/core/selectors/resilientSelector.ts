@@ -117,13 +117,13 @@ function structuralPath(el: Element): string {
   const parts: string[] = [];
   let cur: Element | null = el;
   let depth = 0;
-  while (cur && cur.parentElement && depth < 6) {
+  while (cur && cur.tagName.toLowerCase() !== 'body' && cur.parentElement && depth < 6) {
     const idx = Array.from(cur.parentElement.children).indexOf(cur) + 1;
     parts.unshift(`${cur.tagName.toLowerCase()}:nth-child(${idx})`);
     cur = cur.parentElement;
     depth++;
   }
-  return parts.join('>');
+  return parts.length > 0 ? `body>${parts.join('>')}` : 'body';
 }
 
 function hash(s: string): number {

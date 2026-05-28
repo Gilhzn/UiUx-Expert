@@ -45,6 +45,8 @@ function fillForm(dna: UxDna) {
   setField('focusMode.dimLevel', dna.focusMode.dimLevel);
   setField('motion.enabled', dna.motion.enabled);
   setField('motion.reduce', dna.motion.reduce);
+  setField('blueprint.enabled', dna.blueprint.enabled);
+  setField('blueprint.serverUrl', dna.blueprint.serverUrl);
 }
 
 function readForm(): Partial<UxDna> {
@@ -78,6 +80,10 @@ function readForm(): Partial<UxDna> {
     motion: {
       enabled: getChecked('motion.enabled'),
       reduce: getChecked('motion.reduce'),
+    },
+    blueprint: {
+      enabled: getChecked('blueprint.enabled'),
+      serverUrl: getValue('blueprint.serverUrl').trim(),
     },
   };
 }

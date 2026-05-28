@@ -47,6 +47,10 @@ export interface UxDna {
     enabled: boolean;
     reduce: boolean;
   };
+  blueprint: {
+    enabled: boolean;
+    serverUrl: string;
+  };
 }
 
 export interface SiteOverride {
@@ -89,4 +93,6 @@ export type Message =
   | { type: 'getSuggestions'; url: string }
   | { type: 'applySuggestion'; origin: string; suggestionId: string; anchor: SelectorAnchor }
   | { type: 'dismissSuggestion'; origin: string; suggestionId: string }
-  | { type: 'removeCustomRule'; origin: string; ruleId: string };
+  | { type: 'removeCustomRule'; origin: string; ruleId: string }
+  | { type: 'fetchBlueprint'; structuralHash: string; skeleton: unknown }
+  | { type: 'reportBlueprintFailure'; structuralHash: string };

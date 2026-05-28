@@ -10,8 +10,16 @@ import {
 import { routeKeyFromUrl } from '../core/heatmap/routeKey';
 import { loadRouteHeatmap } from '../core/heatmap/heatmapStorage';
 import { generateSuggestions } from '../core/heatmap/suggestions';
+import { fetchBlueprint } from '../core/blueprint/client';
+import {
+  freshCachedBlueprint,
+  loadCachedBlueprint,
+  recordBlueprintFailure,
+} from '../core/blueprint/blueprintStorage';
+import type { SkeletonNode } from '../core/skeletonizer/skeletonizer';
 import type { Message } from '../core/storage/types';
 import type { Suggestion } from '../core/heatmap/types';
+import type { CachedBlueprint } from '../core/blueprint/types';
 
 export default defineBackground(() => {
   chrome.runtime.onMessage.addListener((msg: Message, _sender, sendResponse) => {
@@ -70,6 +78,34 @@ async function handle(msg: Message) {
     case 'removeCustomRule': {
       const state = await removeCustomRule(msg.origin, msg.ruleId);
       return { type: 'state' as const, state };
+    }
+    case 'fetchBlueprint': {
+      const state = await loadState();
+      const { enabled, serverUrl } = state.uxDna.blueprint;
+      if (!enabled || !serverUrl) {
+        return { type: 'blueprint' as const, cached: null, reason: 'disabled' };
+      }
+      const existing = await loadCachedBlueprint(msg.structuralHash);
+      if (existing && !existing.quarantined) {
+        return { type: 'blueprint' as const, cached: existing, reason: 'local-cache' };
+      }
+      if (existing?.quarantined) {
+        return { type: 'blueprint' as const, cached: null, reason: 'quarantined' };
+      }
+      const result = await fetchBlueprint({
+        serverUrl,
+        structuralHash: msg.structuralHash,
+        skeleton: msg.skeleton as SkeletonNode,
+      });
+      if (!result.ok || !result.blueprint) {
+        return { type: 'blueprint' as const, cached: null, reason: result.error ?? 'fetch failed' };
+      }
+      const fresh: CachedBlueprint = await freshCachedBlueprint(result.blueprint);
+      return { type: 'blueprint' as const, cached: fresh, reason: result.source };
+    }
+    case 'reportBlueprintFailure': {
+      await recordBlueprintFailure(msg.structuralHash);
+      return { type: 'ok' as const };
     }
     default:
       return { type: 'error' as const, error: 'unknown message' };

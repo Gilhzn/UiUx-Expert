@@ -62,6 +62,14 @@
       <label><input type="checkbox" name="motion.enabled"> הפעל</label>
       <label><input type="checkbox" name="motion.reduce"> הפחת תנועה</label>
     </fieldset>
+    <fieldset>
+      <legend>Blueprint (שרת AI — מתקדם)</legend>
+      <p class="hint">בעת הפעלה, מבנה האתר (לאחר Skeletonizer — ללא טקסט/PII) נשלח לשרת לקבלת המלצות נוספות. דורש שרת מקומי או פרטי שלך.</p>
+      <label><input type="checkbox" name="blueprint.enabled"> הפעל</label>
+      <label>כתובת שרת:
+        <input type="url" name="blueprint.serverUrl" placeholder="http://localhost:8000" style="min-width: 280px;">
+      </label>
+    </fieldset>
     <button type="submit">שמור</button>
     <span id="save-status"></span>
   </form>
